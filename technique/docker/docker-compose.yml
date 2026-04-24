@@ -1,0 +1,131 @@
+version: "3.9"
+
+services:
+
+  # ── API FastAPI ──────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: edf-prediction-api
+    ports:
+      - "8000:8000"
+    environment:
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-change-me-in-production}
+      - MODELS_PATH=/app/data/models_saved
+      - PROCESSED_PATH=/app/data/processed
+      - DATABASE_URL=postgresql://edf_user:${DB_PASSWORD:-edf2025}@postgres:5432/edf_predictions
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - models_data:/app/data/models_saved
+    networks:
+      - edf-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    labels:
+      - "com.edf.service=prediction-api"
+      - "com.edf.version=1.0.0"
+
+  # ── PostgreSQL — Stockage des prédictions ───────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: edf-postgres
+    environment:
+      POSTGRES_USER: edf_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-edf2025}
+      POSTGRES_DB: edf_predictions
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - edf-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U edf_user -d edf_predictions"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── MLflow — Tracking des expériences ───────────────────────────────────────
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.9.2
+    container_name: edf-mlflow
+    ports:
+      - "5000:5000"
+    environment:
+      - MLFLOW_BACKEND_STORE_URI=postgresql://edf_user:${DB_PASSWORD:-edf2025}@postgres:5432/edf_predictions
+      - MLFLOW_DEFAULT_ARTIFACT_ROOT=/mlflow/artifacts
+    command: >
+      mlflow server
+      --backend-store-uri postgresql://edf_user:${DB_PASSWORD:-edf2025}@postgres:5432/edf_predictions
+      --default-artifact-root /mlflow/artifacts
+      --host 0.0.0.0
+      --port 5000
+    volumes:
+      - mlflow_artifacts:/mlflow/artifacts
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - edf-network
+    restart: unless-stopped
+
+  # ── Prometheus — Collecte des métriques ─────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: edf-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+      - "--web.enable-lifecycle"
+    networks:
+      - edf-network
+    restart: unless-stopped
+
+  # ── Grafana — Tableaux de bord ──────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: edf-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-edf2025!}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
+    networks:
+      - edf-network
+    restart: unless-stopped
+
+# ── Volumes ──────────────────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+  mlflow_artifacts:
+  prometheus_data:
+  grafana_data:
+  models_data:
+
+# ── Réseau ───────────────────────────────────────────────────────────────────
+networks:
+  edf-network:
+    driver: bridge
+    name: edf-ia-network
