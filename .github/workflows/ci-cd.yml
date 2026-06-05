@@ -84,7 +84,6 @@ jobs:
           path: |
             technique/data/models_saved/
             technique/data/processed/scaler.pkl
-            technique/data/processed/feature_cols.csv
           key: models-${{ hashFiles('technique/src/models/**', 'technique/src/data_pipeline/**', 'requirements.txt') }}
 
       - name: Setup Python 3.10
@@ -128,7 +127,7 @@ jobs:
           path: |
             technique/data/models_saved/
             technique/data/processed/scaler.pkl
-            technique/data/processed/feature_cols.csv
+          if-no-files-found: error
           retention-days: 7
 
   # ── Job 3 : Build Docker ─────────────────────────────────────────────────────
@@ -148,6 +147,15 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ml-models-${{ github.sha }}
+          path: .
+
+      - name: Vérifier les fichiers requis pour le build
+        run: |
+          echo "=== Fichiers modèles ==="
+          ls -la technique/data/models_saved/
+          echo "=== Fichiers processed ==="
+          ls -la technique/data/processed/scaler.pkl
+          ls -la technique/data/processed/feature_cols.csv
 
       - name: Login sur GHCR
         uses: docker/login-action@v3
