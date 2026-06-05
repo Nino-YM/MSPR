@@ -13,6 +13,7 @@ Température :
   Résultat mis en cache dans data/raw/temperature_nationale_DEBUT_FIN.csv.
 """
 
+import requests
 import pandas as pd
 import numpy as np
 import logging
