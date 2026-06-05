@@ -9,11 +9,10 @@ import joblib
 import logging
 from pathlib import Path
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
 
 logger = logging.getLogger(__name__)
 
-PROCESSED_PATH = Path(__file__).parents[3] / "data" / "processed"
+PROCESSED_PATH = Path(__file__).parents[2] / "data" / "processed"
 PROCESSED_PATH.mkdir(parents=True, exist_ok=True)
 
 
@@ -211,6 +210,9 @@ def run_preprocessing_pipeline(df_raw: pd.DataFrame,
         np.save(PROCESSED_PATH / "X_test.npy", X_test_sc)
         np.save(PROCESSED_PATH / "y_train.npy", y_train)
         np.save(PROCESSED_PATH / "y_test.npy", y_test)
+        pd.Series(feature_cols).to_csv(
+            PROCESSED_PATH / "feature_cols.csv", index=False, header=False
+        )
         logger.info("Données traitées sauvegardées dans data/processed/")
 
     return {

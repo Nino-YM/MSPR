@@ -21,7 +21,7 @@ from api.schemas import (
     HealthResponse, ModelMetricsResponse
 )
 from api.auth import create_access_token, get_current_user, require_role
-from data_pipeline.preprocessing import build_features, get_feature_columns, normalize_features
+from data_pipeline.preprocessing import build_features, get_feature_columns
 from models.rbf_network import RBFNetwork
 
 logging.basicConfig(level=logging.INFO)
@@ -177,9 +177,10 @@ def predict(
 ):
     model_key = req.model
     if model_key not in state["models"]:
+        available = list(state["models"].keys())
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Modèle '{model_key}' non disponible. Disponibles : {list(state['models'].keys())}"
+            detail=f"Modèle '{model_key}' non disponible. Disponibles : {available}"
         )
 
     model = state["models"][model_key]

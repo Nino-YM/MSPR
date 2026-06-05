@@ -7,6 +7,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../src'))
 
 import numpy as np
+import pandas as pd
 import pytest
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.tree import DecisionTreeRegressor
@@ -54,7 +55,7 @@ class TestPreprocessing:
         assert synthetic_dataset.isnull().sum().sum() == 0
 
     def test_clean_data_removes_duplicates(self, synthetic_dataset):
-        df_dup = synthetic_dataset.append(synthetic_dataset.iloc[:5])
+        df_dup = pd.concat([synthetic_dataset, synthetic_dataset.iloc[:5]])
         df_clean = clean_data(df_dup)
         assert len(df_clean) == len(df_clean['date'].unique())
 

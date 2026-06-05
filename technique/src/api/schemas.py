@@ -1,10 +1,10 @@
 from pydantic import BaseModel, Field, field_validator
 from typing import Literal
-from datetime import date
+from datetime import date as Date
 
 
 class PredictionRequest(BaseModel):
-    date: date = Field(..., description="Date de prédiction (YYYY-MM-DD)")
+    date: Date = Field(..., description="Date de prédiction (YYYY-MM-DD)")
     temperature_moyenne: float = Field(..., ge=-20, le=45, description="Température moyenne en °C")
     temperature_min: float = Field(..., ge=-25, le=40, description="Température minimale en °C")
     temperature_max: float = Field(..., ge=-15, le=50, description="Température maximale en °C")

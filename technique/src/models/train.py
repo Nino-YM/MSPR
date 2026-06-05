@@ -4,7 +4,6 @@ Usage : python -m models.train [--model all|random_forest|rbf_network|decision_t
 """
 import argparse
 import time
-import json
 import logging
 from pathlib import Path
 
@@ -22,8 +21,8 @@ from models.evaluate import evaluate_model, mape
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
-PROCESSED_PATH = Path("data/processed")
-MODELS_PATH    = Path("data/models_saved")
+PROCESSED_PATH = Path(__file__).parents[2] / "data" / "processed"
+MODELS_PATH    = Path(__file__).parents[2] / "data" / "models_saved"
 MODELS_PATH.mkdir(parents=True, exist_ok=True)
 
 
@@ -86,7 +85,9 @@ def train_decision_tree(X_train, X_test, y_train, y_test):
 
     metrics = evaluate_model(dt_final, X_test, y_test, model_name="Arbre de Décision")
     metrics["training_time_s"] = round(training_time, 3)
-    metrics["hyperparameters"] = {"max_depth": optimal_depth, "min_samples_split": 20, "min_samples_leaf": 10}
+    metrics["hyperparameters"] = {
+        "max_depth": optimal_depth, "min_samples_split": 20, "min_samples_leaf": 10
+    }
 
     joblib.dump(dt_final, MODELS_PATH / "decision_tree_v1.pkl")
     pd.Series(metrics).to_json(MODELS_PATH / "metrics_decision_tree.json")

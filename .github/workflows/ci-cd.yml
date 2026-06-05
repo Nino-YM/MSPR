@@ -1,0 +1,224 @@
+name: CI/CD - EDF Prediction API
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  REGISTRY:  ghcr.io
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+
+  # ── Job 1 : Tests ────────────────────────────────────────────────────────────
+  test:
+    name: Tests unitaires & intégration
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      - name: Installer les dépendances
+        run: |
+          pip install --upgrade pip
+          pip install -r technique/requirements.txt
+
+      - name: Générer les données synthétiques et pré-traiter
+        run: |
+          cd technique
+          python -c "
+          import sys; sys.path.insert(0, 'src')
+          from data_pipeline.ingestion import generate_synthetic_data
+          from data_pipeline.preprocessing import run_preprocessing_pipeline
+          import pathlib
+          pathlib.Path('data/processed').mkdir(parents=True, exist_ok=True)
+          pathlib.Path('data/models_saved').mkdir(parents=True, exist_ok=True)
+          df = generate_synthetic_data('2019-01-01', '2024-12-31')
+          run_preprocessing_pipeline(df, save=True)
+          print('Preprocessing OK')
+          "
+
+      - name: Linting (flake8)
+        run: |
+          pip install flake8
+          flake8 technique/src --max-line-length=100 --exclude=__pycache__ --extend-ignore=E221,E127 --count
+
+      - name: Tests unitaires (pytest)
+        run: |
+          cd technique
+          pytest tests/unit/ -v --tb=short --cov=src --cov-report=xml
+
+      - name: Upload couverture de code
+        uses: codecov/codecov-action@v3
+        with:
+          file: technique/coverage.xml
+          fail_ci_if_error: false
+
+  # ── Job 2 : Entraînement des modèles ─────────────────────────────────────────
+  train:
+    name: Entraînement des modèles ML
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main'
+
+    outputs:
+      cache-hit: ${{ steps.model-cache.outputs.cache-hit }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache des modèles entraînés
+        id: model-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            technique/data/models_saved/
+            technique/data/processed/scaler.pkl
+            technique/data/processed/feature_cols.csv
+          key: models-${{ hashFiles('technique/src/models/**', 'technique/src/data_pipeline/**', 'requirements.txt') }}
+
+      - name: Setup Python 3.10
+        if: steps.model-cache.outputs.cache-hit != 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      - name: Installer les dépendances
+        if: steps.model-cache.outputs.cache-hit != 'true'
+        run: |
+          pip install --upgrade pip
+          pip install -r technique/requirements.txt
+
+      - name: Générer les données et pré-traiter
+        if: steps.model-cache.outputs.cache-hit != 'true'
+        run: |
+          cd technique
+          python -c "
+          import sys; sys.path.insert(0, 'src')
+          from data_pipeline.ingestion import generate_synthetic_data
+          from data_pipeline.preprocessing import run_preprocessing_pipeline
+          import pathlib
+          pathlib.Path('data/processed').mkdir(parents=True, exist_ok=True)
+          pathlib.Path('data/models_saved').mkdir(parents=True, exist_ok=True)
+          df = generate_synthetic_data('2019-01-01', '2024-12-31')
+          run_preprocessing_pipeline(df, save=True)
+          "
+
+      - name: Entraîner tous les modèles
+        if: steps.model-cache.outputs.cache-hit != 'true'
+        run: |
+          cd technique
+          PYTHONPATH=src python -m models.train --model all
+
+      - name: Upload des modèles entraînés
+        uses: actions/upload-artifact@v4
+        with:
+          name: ml-models-${{ github.sha }}
+          path: |
+            technique/data/models_saved/
+            technique/data/processed/scaler.pkl
+            technique/data/processed/feature_cols.csv
+          retention-days: 7
+
+  # ── Job 3 : Build Docker ─────────────────────────────────────────────────────
+  build:
+    name: Build & Push image Docker
+    runs-on: ubuntu-latest
+    needs: train
+
+    outputs:
+      image_uri: ${{ steps.build.outputs.image_uri }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Télécharger les modèles entraînés
+        uses: actions/download-artifact@v4
+        with:
+          name: ml-models-${{ github.sha }}
+
+      - name: Login sur GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build, tag et push l'image
+        id: build
+        run: |
+          cd technique
+          IMAGE_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE_URI="${{ env.REGISTRY }}/${IMAGE_NAME}:${{ env.IMAGE_TAG }}"
+          docker build -f docker/Dockerfile -t "$IMAGE_URI" -t "${{ env.REGISTRY }}/${IMAGE_NAME}:latest" .
+          docker push "$IMAGE_URI"
+          docker push "${{ env.REGISTRY }}/${IMAGE_NAME}:latest"
+          echo "image_uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
+          echo "Image poussée : $IMAGE_URI"
+
+      - name: Scan de sécurité (Trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.build.outputs.image_uri }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
+          exit-code: 0
+
+      - name: Upload résultats Trivy
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+
+  # ── Job 4 : Déploiement PRODUCTION ───────────────────────────────────────────
+  deploy-production:
+    name: Déploiement Production
+    runs-on: self-hosted
+    needs: build
+    environment: production
+
+    steps:
+      - name: Login sur GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Déploiement Blue-Green
+        run: |
+          set -e
+          cd /opt/edf-prediction
+
+          IMAGE_URI="${{ needs.build.outputs.image_uri }}"
+
+          # Blue-Green : démarrer le nouveau conteneur sur port 8001
+          docker run -d --name api-green \
+            -p 8001:8000 \
+            -e JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }} \
+            "$IMAGE_URI"
+
+          # Vérification santé
+          sleep 20
+          curl --fail http://localhost:8001/health || (docker rm -f api-green && exit 1)
+
+          # Basculement : green devient la production sur port 8000
+          docker rm -f api-blue 2>/dev/null || true
+          docker rename api-green api-blue
+          docker stop api-blue 2>/dev/null || true
+          docker run -d --name api-blue \
+            -p 8000:8000 \
+            -e JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }} \
+            "$IMAGE_URI"
+
+          # Nettoyage des vieilles images
+          docker image prune -f
+          echo "Production déployée - version ${{ env.IMAGE_TAG }}"
