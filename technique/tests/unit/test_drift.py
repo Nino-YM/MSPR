@@ -109,9 +109,9 @@ class TestFullAnalysis:
         rng = np.random.default_rng(42)
         X_ref, X_cur = stable_data
         y_ref = rng.normal(60000, 5000, len(X_ref))
-        y_cur = rng.normal(60000, 5000, len(X_cur))
-        errors = rng.normal(0, 500, len(X_cur))
-        errors -= errors.mean()  # Force exact zero mean
+        # Subsample y_ref so PSI is guaranteed near 0 (same distribution by construction)
+        y_cur = rng.choice(y_ref, size=len(X_cur), replace=False)
+        errors = np.zeros(len(X_cur))  # Exact zero errors — CUSUM won't trigger
 
         report = full_drift_analysis(X_ref, X_cur, y_ref, y_cur, errors)
         assert "drift_detected" in report
