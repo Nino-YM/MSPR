@@ -12,7 +12,7 @@ from sklearn.preprocessing import StandardScaler
 
 logger = logging.getLogger(__name__)
 
-PROCESSED_PATH = Path(__file__).parents[3] / "data" / "processed"
+PROCESSED_PATH = Path(__file__).parents[2] / "data" / "processed"
 PROCESSED_PATH.mkdir(parents=True, exist_ok=True)
 
 

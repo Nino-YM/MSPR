@@ -21,8 +21,8 @@ from models.evaluate import evaluate_model, mape
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
-PROCESSED_PATH = Path("data/processed")
-MODELS_PATH    = Path("data/models_saved")
+PROCESSED_PATH = Path(__file__).parents[2] / "data" / "processed"
+MODELS_PATH    = Path(__file__).parents[2] / "data" / "models_saved"
 MODELS_PATH.mkdir(parents=True, exist_ok=True)
 
 
