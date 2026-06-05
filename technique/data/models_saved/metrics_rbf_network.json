@@ -1,0 +1,1 @@
+{"model_name":"R\u00e9seau RBF","r2":0.9935,"rmse_mw":1730.9,"mape_pct":2.09,"mae_mw":1314.1,"accuracy_10pct":99.8,"accuracy_5pct":92.4,"inference_ms":0.13,"n_test_samples":437,"training_time_s":0.7,"hyperparameters":{"n_centers":100,"gamma":0.1,"alpha":0.001}}

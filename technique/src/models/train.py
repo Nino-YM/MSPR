@@ -62,7 +62,7 @@ def train_random_forest(X_train, X_test, y_train, y_test):
 
     joblib.dump(rf, MODELS_PATH / "random_forest_v1.pkl")
     pd.Series(metrics).to_json(MODELS_PATH / "metrics_random_forest.json")
-    logger.info(f"✅ Random Forest — R²={metrics['r2']:.4f} | MAPE={metrics['mape_pct']:.2f}%")
+    logger.info(f" Random Forest — R²={metrics['r2']:.4f} | MAPE={metrics['mape_pct']:.2f}%")
     return metrics
 
 
@@ -90,7 +90,7 @@ def train_decision_tree(X_train, X_test, y_train, y_test):
 
     joblib.dump(dt_final, MODELS_PATH / "decision_tree_v1.pkl")
     pd.Series(metrics).to_json(MODELS_PATH / "metrics_decision_tree.json")
-    logger.info(f"✅ Arbre de Décision — R²={metrics['r2']:.4f} | MAPE={metrics['mape_pct']:.2f}%")
+    logger.info(f" Arbre de Décision — R²={metrics['r2']:.4f} | MAPE={metrics['mape_pct']:.2f}%")
     return metrics
 
 
@@ -124,7 +124,7 @@ def train_rbf_network(X_train, X_test, y_train, y_test):
 
     rbf_final.save(str(MODELS_PATH / "rbf_network_v1.pkl"))
     pd.Series(metrics).to_json(MODELS_PATH / "metrics_rbf_network.json")
-    logger.info(f"✅ Réseau RBF — R²={metrics['r2']:.4f} | MAPE={metrics['mape_pct']:.2f}%")
+    logger.info(f" Réseau RBF — R²={metrics['r2']:.4f} | MAPE={metrics['mape_pct']:.2f}%")
     return metrics
 
 
@@ -156,7 +156,7 @@ def train_knn(X_train, X_test, y_train, y_test):
 
     joblib.dump(knn_final, MODELS_PATH / "knn_v1.pkl")
     pd.Series(metrics).to_json(MODELS_PATH / "metrics_knn.json")
-    logger.info(f"✅ KNN — R²={metrics['r2']:.4f} | MAPE={metrics['mape_pct']:.2f}%")
+    logger.info(f" KNN — R²={metrics['r2']:.4f} | MAPE={metrics['mape_pct']:.2f}%")
     return metrics
 
 
@@ -187,7 +187,7 @@ def main():
     logger.info("RÉSUMÉ ENTRAÎNEMENT")
     logger.info("=" * 60)
     for name, m in all_metrics.items():
-        status = "✅" if m.get("mape_pct", 99) <= 4.0 else "⚠️ "
+        status = "" if m.get("mape_pct", 99) <= 4.0 else "⚠️ "
         logger.info(f"{status} {name:20s} R²={m['r2']:.4f} | MAPE={m['mape_pct']:.2f}%")
 
 

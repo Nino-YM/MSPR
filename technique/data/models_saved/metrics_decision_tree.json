@@ -1,0 +1,1 @@
+{"model_name":"Arbre de D\u00e9cision","r2":0.992,"rmse_mw":1915.8,"mape_pct":2.07,"mae_mw":1288.2,"accuracy_10pct":98.9,"accuracy_5pct":90.6,"inference_ms":0.08,"n_test_samples":437,"training_time_s":0.009,"hyperparameters":{"max_depth":12,"min_samples_split":20,"min_samples_leaf":10}}

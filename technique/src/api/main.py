@@ -66,21 +66,21 @@ async def lifespan(app: FastAPI):
                     state["models"][model_key] = RBFNetwork.load(str(path))
                 else:
                     state["models"][model_key] = joblib.load(path)
-                logger.info(f"✅ {model_key} chargé")
+                logger.info(f" {model_key} chargé")
             except Exception as e:
-                logger.warning(f"⚠️  {model_key} non chargé : {e}")
+                logger.warning(f"  {model_key} non chargé : {e}")
         else:
-            logger.warning(f"⚠️  Fichier modèle absent : {path}")
+            logger.warning(f"  Fichier modèle absent : {path}")
 
     scaler_path = PROCESSED_PATH / "scaler.pkl"
     if scaler_path.exists():
         state["scaler"] = joblib.load(scaler_path)
-        logger.info("✅ Scaler chargé")
+        logger.info(" Scaler chargé")
 
     fc_path = PROCESSED_PATH / "feature_cols.csv"
     if fc_path.exists():
         state["feature_cols"] = pd.read_csv(fc_path, header=None)[0].tolist()
-        logger.info(f"✅ {len(state['feature_cols'])} features chargées")
+        logger.info(f" {len(state['feature_cols'])} features chargées")
 
     MODELS_LOADED_GAUGE.set(len(state["models"]))
     logger.info(f"API prête — {len(state['models'])} modèles disponibles")

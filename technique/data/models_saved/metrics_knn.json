@@ -1,0 +1,1 @@
+{"model_name":"KNN","r2":0.9886,"rmse_mw":2282.9,"mape_pct":2.48,"mae_mw":1664.0,"accuracy_10pct":98.9,"accuracy_5pct":86.5,"inference_ms":0.36,"n_test_samples":437,"training_time_s":0.007,"hyperparameters":{"n_neighbors":6,"weights":"distance","algorithm":"ball_tree"},"inference_warning":"KNN non recommand\u00e9 pour production (inf\u00e9rence lente)"}

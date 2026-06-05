@@ -26,7 +26,7 @@ class DriftReport:
     recommendation: str = ""
 
     def __str__(self):
-        status = "⚠️  DÉRIVE DÉTECTÉE" if self.drift_detected else "✅ Pas de dérive"
+        status = " DÉRIVE DÉTECTÉE" if self.drift_detected else " Pas de dérive"
         return (
             f"[{self.method}] {status} | "
             f"stat={self.statistic:.4f} (seuil={self.threshold}) | "
@@ -180,11 +180,11 @@ def full_drift_analysis(X_reference: np.ndarray, X_current: np.ndarray,
     n_alerts  = sum([ks_report.drift_detected, psi_report.drift_detected, cusum_report.drift_detected])
 
     if n_alerts == 0:
-        global_recommendation = "✅ Modèle stable — surveillance normale (vérification mensuelle)."
+        global_recommendation = " Modèle stable — surveillance normale (vérification mensuelle)."
     elif n_alerts == 1:
-        global_recommendation = "⚠️  Signal faible — augmenter la fréquence de monitoring (hebdomadaire)."
+        global_recommendation = "  Signal faible — augmenter la fréquence de monitoring (hebdomadaire)."
     else:
-        global_recommendation = "🚨 Dérive confirmée — réentraînement urgent requis sous 48h."
+        global_recommendation = " Dérive confirmée — réentraînement urgent requis sous 48h."
 
     report = {
         "drift_detected": any_drift,

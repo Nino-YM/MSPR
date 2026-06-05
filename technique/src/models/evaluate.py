@@ -138,7 +138,7 @@ def _check_objectives(metrics: dict) -> None:
     ]
     print("\n  Objectifs EDF :")
     for label, passed in checks:
-        status = "✅" if passed else "❌"
+        status = "Ok" if passed else "Ko"
         print(f"    {status}  {label}")
 
 

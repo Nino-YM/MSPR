@@ -1,0 +1,82 @@
+{
+  "selected_model": "Random Forest",
+  "selection_date": "2025-01-15",
+  "model_path": "..\\data\\models_saved\\random_forest_v1.pkl",
+  "metrics": {
+    "model_name": "Random Forest",
+    "r2": 0.9954,
+    "rmse_mw": 1447.6,
+    "mape_pct": 1.71,
+    "mae_mw": 1077.6,
+    "accuracy_10pct": 99.5,
+    "accuracy_5pct": 96.3,
+    "inference_ms": 38.94,
+    "n_test_samples": 437
+  },
+  "weighted_scores": {
+    "Random Forest": 84.62,
+    "Réseau RBF": 50.87,
+    "Arbre de Décision": 55.08,
+    "KNN": 3.95
+  },
+  "other_models": {
+    "Réseau RBF": {
+      "model_name": "Réseau RBF",
+      "r2": 0.9935,
+      "rmse_mw": 1730.9,
+      "mape_pct": 2.09,
+      "mae_mw": 1314.1,
+      "accuracy_10pct": 99.8,
+      "accuracy_5pct": 92.4,
+      "inference_ms": 0.15,
+      "n_test_samples": 437
+    },
+    "Arbre de Décision": {
+      "model_name": "Arbre de Décision",
+      "r2": 0.992,
+      "rmse_mw": 1915.8,
+      "mape_pct": 2.07,
+      "mae_mw": 1288.2,
+      "accuracy_10pct": 98.9,
+      "accuracy_5pct": 90.6,
+      "inference_ms": 0.12,
+      "n_test_samples": 437
+    },
+    "KNN": {
+      "model_name": "KNN",
+      "r2": 0.9886,
+      "rmse_mw": 2282.9,
+      "mape_pct": 2.48,
+      "mae_mw": 1664.0,
+      "accuracy_10pct": 98.9,
+      "accuracy_5pct": 86.5,
+      "inference_ms": 0.72,
+      "n_test_samples": 437
+    }
+  },
+  "ensemble": {
+    "weights": {
+      "Random Forest": 0.3,
+      "Réseau RBF": 0.2454,
+      "Arbre de Décision": 0.2478,
+      "KNN": 0.2068
+    },
+    "metrics": {
+      "model_name": "Ensemble (4 modèles)",
+      "r2": 0.9961,
+      "rmse_mw": 1327.5,
+      "mape_pct": 1.62,
+      "mae_mw": 1009.1,
+      "accuracy_10pct": 99.8,
+      "accuracy_5pct": 96.6,
+      "inference_ms": 0.0,
+      "n_test_samples": 437
+    },
+    "vs_best_model": {
+      "best_individual": "Random Forest",
+      "delta_mape": 0.09,
+      "delta_r2": 0.0007,
+      "winner": "ENSEMBLE"
+    }
+  }
+}
