@@ -210,6 +210,9 @@ def run_preprocessing_pipeline(df_raw: pd.DataFrame,
         np.save(PROCESSED_PATH / "X_test.npy", X_test_sc)
         np.save(PROCESSED_PATH / "y_train.npy", y_train)
         np.save(PROCESSED_PATH / "y_test.npy", y_test)
+        pd.Series(feature_cols).to_csv(
+            PROCESSED_PATH / "feature_cols.csv", index=False, header=False
+        )
         logger.info("Données traitées sauvegardées dans data/processed/")
 
     return {
