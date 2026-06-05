@@ -3,13 +3,10 @@ Ingestion des données RTE éco2mix et Météo France.
 Collecte quotidienne orchestrée par Apache Airflow.
 """
 
-import requests
 import pandas as pd
 import numpy as np
 import logging
-from datetime import datetime, timedelta
 from pathlib import Path
-import os
 
 logger = logging.getLogger(__name__)
 
@@ -32,10 +29,8 @@ def fetch_rte_eco2mix(date_debut: str, date_fin: str) -> pd.DataFrame:
     Returns:
         DataFrame avec colonnes [date, heure, consommation_mw, production_*]
     """
-    url = "https://data.rte-france.com/api/v1/eco2mix/actual_generations_per_unit"
-    # NOTE : En production, utiliser les vraies credentials OAuth2 RTE
-    # Pour le projet, on charge depuis CSV téléchargé manuellement depuis
-    # https://www.rte-france.com/eco2mix/la-consommation-delectricite-en-franc
+    # NOTE : En production, utiliser l'API RTE éco2mix avec credentials OAuth2
+    # Pour le projet, on charge depuis CSV téléchargé manuellement
 
     csv_path = RAW_DATA_PATH / "rte_eco2mix_2019_2024.csv"
     if csv_path.exists():
@@ -158,7 +153,11 @@ def aggregate_daily(df_horaire: pd.DataFrame) -> pd.DataFrame:
 
     df_daily = df_horaire.groupby("date").agg(
         consommation_mw=("consommation_mw", "mean"),
-        temperature_moyenne=("temperature_moyenne", "mean") if "temperature_moyenne" in df_horaire.columns else ("consommation_mw", "count"),
+        temperature_moyenne=(
+            ("temperature_moyenne", "mean")
+            if "temperature_moyenne" in df_horaire.columns
+            else ("consommation_mw", "count")
+        ),
     ).reset_index()
 
     return df_daily

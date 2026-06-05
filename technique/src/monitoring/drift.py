@@ -86,7 +86,6 @@ def psi_drift(y_pred_reference: np.ndarray, y_pred_current: np.ndarray,
       PSI ≥ 0.20 → dérive significative, réentraîner
     """
     # Normaliser les prédictions pour le binning
-    all_vals = np.concatenate([y_pred_reference, y_pred_current])
     bins = np.percentile(y_pred_reference, np.linspace(0, 100, n_bins + 1))
     bins[0]  -= 1e-6
     bins[-1] += 1e-6
@@ -177,12 +176,16 @@ def full_drift_analysis(X_reference: np.ndarray, X_current: np.ndarray,
     cusum_report = cusum_drift(errors_current)
 
     any_drift = ks_report.drift_detected or psi_report.drift_detected or cusum_report.drift_detected
-    n_alerts  = sum([ks_report.drift_detected, psi_report.drift_detected, cusum_report.drift_detected])
+    n_alerts  = sum([
+        ks_report.drift_detected, psi_report.drift_detected, cusum_report.drift_detected
+    ])
 
     if n_alerts == 0:
         global_recommendation = "✅ Modèle stable — surveillance normale (vérification mensuelle)."
     elif n_alerts == 1:
-        global_recommendation = "⚠️  Signal faible — augmenter la fréquence de monitoring (hebdomadaire)."
+        global_recommendation = (
+            "⚠️  Signal faible — augmenter la fréquence de monitoring (hebdomadaire)."
+        )
     else:
         global_recommendation = "🚨 Dérive confirmée — réentraînement urgent requis sous 48h."
 
