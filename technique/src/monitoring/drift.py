@@ -183,7 +183,9 @@ def full_drift_analysis(X_reference: np.ndarray, X_current: np.ndarray,
     if n_alerts == 0:
         global_recommendation = " Modèle stable — surveillance normale (vérification mensuelle)."
     elif n_alerts == 1:
-        global_recommendation = "  Signal faible — augmenter la fréquence de monitoring (hebdomadaire)."
+        global_recommendation = (
+            "  Signal faible — augmenter la fréquence de monitoring (hebdomadaire)."
+        )
     else:
         global_recommendation = " Dérive confirmée — réentraînement urgent requis sous 48h."
 
