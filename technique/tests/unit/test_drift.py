@@ -84,7 +84,8 @@ class TestCUSUM:
 
     def test_zero_mean_errors_no_drift(self):
         rng = np.random.default_rng(42)
-        errors = rng.normal(0, 1000, 100)  # Erreurs centrées
+        errors = rng.normal(0, 1000, 100)
+        errors -= errors.mean()  # Force exact zero mean
         report = cusum_drift(errors)
         assert not report.drift_detected
 
@@ -110,6 +111,7 @@ class TestFullAnalysis:
         y_ref = rng.normal(60000, 5000, len(X_ref))
         y_cur = rng.normal(60000, 5000, len(X_cur))
         errors = rng.normal(0, 500, len(X_cur))
+        errors -= errors.mean()  # Force exact zero mean
 
         report = full_drift_analysis(X_ref, X_cur, y_ref, y_cur, errors)
         assert "drift_detected" in report
