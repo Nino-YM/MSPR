@@ -146,9 +146,8 @@ class RBFNetwork(BaseEstimator, RegressorMixin):
         joblib.dump(self, path)
         logger.info("Modèle RBF sauvegardé → %s", path)
 
-
     @classmethod
-    def load(_cls, path: str) -> "RBFNetwork":
+    def load(cls, path: str) -> "RBFNetwork":
         """Charge un modèle RBF sérialisé."""
         model = joblib.load(path)
         logger.info("Modèle RBF chargé depuis %s", path)
