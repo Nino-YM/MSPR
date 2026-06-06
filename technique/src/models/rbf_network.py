@@ -141,7 +141,6 @@ class RBFNetwork(BaseEstimator, RegressorMixin):
     # Persistance
     # ─────────────────────────────────────
 
-
     def save(self, path: str) -> None:
         """Sérialise le modèle entraîné avec joblib."""
         joblib.dump(self, path)
