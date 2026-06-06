@@ -5,14 +5,11 @@ Architecture :
   Couche d'entrée → Couche cachée RBF (fonctions gaussiennes, centres = K-Means)
                   → Couche de sortie linéaire (Ridge Regression)
 
-Références :
-  - Broomhead & Lowe (1988) — Multivariable functional interpolation and adaptive networks
-  - Orr (1996) — Introduction to Radial Basis Function Networks
 """
 
+import logging
 import numpy as np
 import joblib
-import logging
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.cluster import KMeans
 from sklearn.linear_model import Ridge
@@ -29,86 +26,103 @@ class RBFNetwork(BaseEstimator, RegressorMixin):
     ----------
     n_centers : int
         Nombre de neurones dans la couche cachée RBF.
-        Les centres sont déterminés par K-Means clustering.
     gamma : float
         Paramètre de largeur de la fonction gaussienne.
-        Plus gamma est grand, plus les fonctions sont étroites.
     alpha : float
         Coefficient de régularisation L2 de la régression Ridge en sortie.
     random_state : int
         Graine aléatoire pour la reproductibilité.
     """
 
-    def __init__(self, n_centers: int = 50, gamma: float = 1.0,
-                 alpha: float = 0.01, random_state: int = 42):
+    def __init__(
+        self,
+        n_centers: int = 50,
+        gamma: float = 1.0,
+        alpha: float = 0.01,
+        random_state: int = 42,
+    ) -> None:
         self.n_centers = n_centers
         self.gamma = gamma
         self.alpha = alpha
         self.random_state = random_state
 
-    # ─────────────────────────────────────
-    # Fonction d'activation RBF (Gaussienne)
-    # ─────────────────────────────────────
-    def _rbf_activation(self, X: np.ndarray, centers: np.ndarray) -> np.ndarray:
+        self.centers_: np.ndarray | None = None
+        self.output_layer_: Ridge | None = None
+        self.n_features_in_: int | None = None
+
+    def _rbf_activation(self, x: np.ndarray, centers: np.ndarray) -> np.ndarray:
         """
-        Calcule les activations gaussiennes pour chaque sample et chaque centre.
+        Calcule les activations gaussiennes pour chaque échantillon et chaque centre.
 
         φ(x, cᵢ) = exp(-γ · ||x - cᵢ||²)
 
-        Args:
-            X       : (n_samples, n_features)
-            centers : (n_centers, n_features)
+        Parameters
+        ----------
+        x : np.ndarray
+            Tableau de forme (n_samples, n_features).
+        centers : np.ndarray
+            Tableau de forme (n_centers, n_features).
 
-        Returns:
-            H : (n_samples, n_centers) — matrice d'activations
+        Returns
+        -------
+        np.ndarray
+            Matrice d'activations de forme (n_samples, n_centers).
         """
-        # Calcul vectorisé : ||x - c||² pour tous les x et c simultanément
-        # diff : (n_samples, n_centers, n_features)
-        diff = X[:, np.newaxis, :] - centers[np.newaxis, :, :]
-        dist_sq = np.sum(diff ** 2, axis=2)  # (n_samples, n_centers)
+        diff = x[:, np.newaxis, :] - centers[np.newaxis, :, :]
+        dist_sq = np.sum(diff**2, axis=2)
         return np.exp(-self.gamma * dist_sq)
 
-    # ─────────────────────────────────────
-    # Entraînement
-    # ─────────────────────────────────────
-    def fit(self, X: np.ndarray, y: np.ndarray) -> "RBFNetwork":
+    def fit(self, x: np.ndarray, y: np.ndarray) -> "RBFNetwork":
         """
-        Entraîne le réseau RBF en deux étapes :
-          1. Détermination des centres par K-Means (non supervisé)
-          2. Apprentissage des poids de sortie par Ridge Regression
+        Entraîne le réseau RBF.
 
-        Args:
-            X : (n_samples, n_features) — features normalisées
-            y : (n_samples,) — consommation cible en MW
+        Parameters
+        ----------
+        x : np.ndarray
+            Features normalisées de forme (n_samples, n_features).
+        y : np.ndarray
+            Cible de forme (n_samples,).
+
+        Returns
+        -------
+        RBFNetwork
+            Instance entraînée.
         """
-        logger.info(f"Entraînement RBF : n_centers={self.n_centers}, gamma={self.gamma}")
+        logger.info(
+            "Entraînement RBF : n_centers=%s, gamma=%s",
+            self.n_centers,
+            self.gamma,
+        )
 
-        # Étape 1 : Centres par K-Means
         kmeans = KMeans(
             n_clusters=self.n_centers,
             random_state=self.random_state,
             n_init=10,
             max_iter=300,
         )
-        kmeans.fit(X)
-        self.centers_ = kmeans.cluster_centers_  # (n_centers, n_features)
-        logger.info(f"K-Means converged en {kmeans.n_iter_} itérations")
+        kmeans.fit(x)
 
-        # Étape 2 : Matrice d'activations H
-        H = self._rbf_activation(X, self.centers_)  # (n_samples, n_centers)
+        self.centers_ = kmeans.cluster_centers_
 
-        # Étape 3 : Poids de sortie via Ridge Regression
+        logger.info(
+            "K-Means converged en %s itérations",
+            kmeans.n_iter_,
+        )
+
+        activation_matrix = self._rbf_activation(x, self.centers_)
+
         self.output_layer_ = Ridge(alpha=self.alpha, fit_intercept=True)
-        self.output_layer_.fit(H, y)
+        self.output_layer_.fit(activation_matrix, y)
 
-        self.n_features_in_ = X.shape[1]
+        self.n_features_in_ = x.shape[1]
+
         logger.info("Entraînement RBF terminé")
-        return self
 
+        return self
     # ─────────────────────────────────────
     # Inférence
     # ─────────────────────────────────────
-    def predict(self, X: np.ndarray) -> np.ndarray:
+    def predict(self, x: np.ndarray) -> np.ndarray:
         """
         Prédit la consommation électrique pour de nouveaux échantillons.
 
@@ -119,23 +133,24 @@ class RBFNetwork(BaseEstimator, RegressorMixin):
             y_pred : (n_samples,) — consommation prédite en MW
         """
         check_is_fitted(self, ["centers_", "output_layer_"])
-        H = self._rbf_activation(X, self.centers_)
-        return self.output_layer_.predict(H)
+        h = self._rbf_activation(x, self.centers_)
+        return self.output_layer_.predict(h)
 
     # ─────────────────────────────────────
     # Persistance
     # ─────────────────────────────────────
-    def save(self, path: str) -> None:
-        """Sérialise le modèle entraîné avec joblib."""
-        joblib.dump(self, path)
-        logger.info(f"Modèle RBF sauvegardé → {path}")
+def save(self, path: str) -> None:
+    """Sérialise le modèle entraîné avec joblib."""
+    joblib.dump(self, path)
+    logger.info("Modèle RBF sauvegardé → %s", path)
 
-    @classmethod
-    def load(cls, path: str) -> "RBFNetwork":
-        """Charge un modèle RBF sérialisé."""
-        model = joblib.load(path)
-        logger.info(f"Modèle RBF chargé depuis {path}")
-        return model
+
+@classmethod
+def load(_cls, path: str) -> "RBFNetwork":
+    """Charge un modèle RBF sérialisé."""
+    model = joblib.load(path)
+    logger.info("Modèle RBF chargé depuis %s", path)
+    return model
 
 
 if __name__ == "__main__":
