@@ -451,5 +451,6 @@ def main() -> None:
             metrics["mape_pct"],
         )
 
+
 if __name__ == "__main__":
     main()
