@@ -142,10 +142,10 @@ class RBFNetwork(BaseEstimator, RegressorMixin):
     # ─────────────────────────────────────
 
 
-def save(self, path: str) -> None:
-    """Sérialise le modèle entraîné avec joblib."""
-    joblib.dump(self, path)
-    logger.info("Modèle RBF sauvegardé → %s", path)
+    def save(self, path: str) -> None:
+        """Sérialise le modèle entraîné avec joblib."""
+        joblib.dump(self, path)
+        logger.info("Modèle RBF sauvegardé → %s", path)
 
 
 @classmethod
