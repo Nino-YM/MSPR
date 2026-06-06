@@ -122,6 +122,7 @@ class RBFNetwork(BaseEstimator, RegressorMixin):
     # ─────────────────────────────────────
     # Inférence
     # ─────────────────────────────────────
+
     def predict(self, x: np.ndarray) -> np.ndarray:
         """
         Prédit la consommation électrique pour de nouveaux échantillons.
@@ -139,6 +140,7 @@ class RBFNetwork(BaseEstimator, RegressorMixin):
     # ─────────────────────────────────────
     # Persistance
     # ─────────────────────────────────────
+    
 def save(self, path: str) -> None:
     """Sérialise le modèle entraîné avec joblib."""
     joblib.dump(self, path)

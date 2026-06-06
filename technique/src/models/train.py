@@ -52,6 +52,7 @@ def load_data() -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
 
     return X_train, X_test, y_train, y_test
 
+
 def train_random_forest(
     X_train: np.ndarray,
     X_test: np.ndarray,
@@ -123,6 +124,7 @@ def train_random_forest(
     )
 
     return metrics
+
 
 def train_decision_tree(
     X_train: np.ndarray,
@@ -210,6 +212,8 @@ def train_decision_tree(
     )
 
     return metrics
+
+
 def train_rbf_network(
     X_train: np.ndarray,
     X_test: np.ndarray,
@@ -297,6 +301,7 @@ def train_rbf_network(
     )
 
     return metrics
+
 
 def train_knn(
     X_train: np.ndarray,

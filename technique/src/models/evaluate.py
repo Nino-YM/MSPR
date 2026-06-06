@@ -161,7 +161,6 @@ def compare_models(results: dict):
         pd.DataFrame trié par R² décroissant
     """
 
-
     rows = list(results.values())
     df = pd.DataFrame(rows).sort_values("r2", ascending=False).reset_index(drop=True)
 
