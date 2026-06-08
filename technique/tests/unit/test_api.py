@@ -135,9 +135,8 @@ class TestAPIEndpoints:
     def test_root_endpoint(self, client):
         response = client.get("/")
         assert response.status_code == 200
-        data = response.json()
-        assert "service" in data
-        assert "version" in data
+        assert "text/html" in response.headers["content-type"]
+        assert "EDF" in response.text
 
     def test_health_endpoint(self, client):
         response = client.get("/health")
