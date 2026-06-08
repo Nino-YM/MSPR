@@ -201,32 +201,22 @@ jobs:
       - name: Login sur GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Déploiement Blue-Green
+      - name: Déploiement Production
         run: |
           set -e
-          cd /opt/edf-prediction
-
           IMAGE_URI="${{ needs.build.outputs.image_uri }}"
 
-          # Blue-Green : démarrer le nouveau conteneur sur port 8001
-          docker run -d --name api-green \
-            -p 8001:8000 \
-            -e JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }} \
-            "$IMAGE_URI"
+          docker stop api-production 2>/dev/null || true
+          docker rm api-production 2>/dev/null || true
 
-          # Vérification santé
-          sleep 20
-          curl --fail http://localhost:8001/health || (docker rm -f api-green && exit 1)
-
-          # Basculement : green devient la production sur port 8000
-          docker rm -f api-blue 2>/dev/null || true
-          docker rename api-green api-blue
-          docker stop api-blue 2>/dev/null || true
-          docker run -d --name api-blue \
+          docker run -d --name api-production \
+            --restart unless-stopped \
             -p 8000:8000 \
             -e JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }} \
             "$IMAGE_URI"
 
-          # Nettoyage des vieilles images
+          sleep 10
+          curl --fail http://localhost:8000/health || (docker rm -f api-production && exit 1)
+
           docker image prune -f
           echo "Production déployée - version ${{ env.IMAGE_TAG }}"
