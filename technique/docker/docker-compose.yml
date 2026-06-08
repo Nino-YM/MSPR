@@ -58,7 +58,7 @@ services:
 
   # ── MLflow — Tracking des expériences ───────────────────────────────────────
   mlflow:
-    image: ghcr.io/mlflow/mlflow:v2.9.2
+    image: mlflow/mlflow:v2.9.2
     container_name: edf-mlflow
     environment:
       - MLFLOW_BACKEND_STORE_URI=postgresql://edf_user:${DB_PASSWORD:-edf2025}@postgres:5432/edf_predictions

@@ -144,8 +144,6 @@ def root():
     return FileResponse(_INDEX_HTML)
 
 
-
-
 @app.get("/health", response_model=HealthResponse, tags=["Monitoring"])
 def health():
     return HealthResponse(
