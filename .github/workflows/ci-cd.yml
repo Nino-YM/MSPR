@@ -201,22 +201,21 @@ jobs:
       - name: Login sur GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Déploiement Production
         run: |
           set -e
-          IMAGE_URI="${{ needs.build.outputs.image_uri }}"
+          export API_IMAGE="${{ needs.build.outputs.image_uri }}"
+          export JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}"
 
-          docker stop api-production 2>/dev/null || true
-          docker rm api-production 2>/dev/null || true
+          cd technique/docker
+          docker compose pull api
+          docker compose up -d
 
-          docker run -d --name api-production \
-            --restart unless-stopped \
-            -p 8000:8000 \
-            -e JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }} \
-            "$IMAGE_URI"
-
-          sleep 10
-          curl --fail http://localhost:8000/health || (docker rm -f api-production && exit 1)
+          sleep 15
+          docker exec edf-prediction-api curl --fail http://localhost:8000/health || exit 1
 
           docker image prune -f
           echo "Production déployée - version ${{ env.IMAGE_TAG }}"
