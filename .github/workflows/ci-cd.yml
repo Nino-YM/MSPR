@@ -215,7 +215,7 @@ jobs:
           docker compose up -d
 
           sleep 15
-          docker exec edf-prediction-api curl --fail http://localhost:8000/health || exit 1
+          docker exec edf-prediction-api python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
 
           docker image prune -f
           echo "Production déployée - version ${{ env.IMAGE_TAG }}"
