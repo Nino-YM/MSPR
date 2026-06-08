@@ -210,9 +210,11 @@ def root():
     .result.error   { background: #fff5f5; border: 1.5px solid #ffc5c5; }
     .result-title { font-weight: 700; font-size: 1rem; color: #003189; margin-bottom: .75rem; }
     .result.error .result-title { color: #c53030; }
-    .result-row { display: flex; justify-content: space-between; font-size: .9rem; padding: .2rem 0; }
+    .result-row { display: flex; justify-content: space-between;
+                  font-size: .9rem; padding: .2rem 0; }
     .result-row span:last-child { font-weight: 600; }
-    .result-main { font-size: 2rem; font-weight: 800; color: #003189; text-align: center; margin: .5rem 0; }
+    .result-main { font-size: 2rem; font-weight: 800; color: #003189;
+                   text-align: center; margin: .5rem 0; }
     .result-sub  { font-size: .85rem; color: #666; text-align: center; }
   </style>
 </head>
@@ -298,7 +300,9 @@ def root():
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
 
-      const authRes = await fetch('/auth/token?username=' + encodeURIComponent(username) + '&password=' + encodeURIComponent(password), { method: 'POST' });
+      const params = '?username=' + encodeURIComponent(username)
+                   + '&password=' + encodeURIComponent(password);
+      const authRes = await fetch('/auth/token' + params, { method: 'POST' });
       if (!authRes.ok) { showError('Identifiants invalides'); return; }
       const { access_token } = await authRes.json();
 
@@ -338,15 +342,21 @@ def root():
     const r = document.getElementById('result');
     r.className = 'result success';
     document.getElementById('result-title').textContent = 'Résultat — ' + data.date;
-    document.getElementById('result-main').textContent = (data.consommation_predite_gw).toFixed(2) + ' GW';
+    document.getElementById('result-main').textContent =
+      data.consommation_predite_gw.toFixed(2) + ' GW';
     document.getElementById('result-sub').textContent =
       'Intervalle de confiance : ' +
       (data.confidence_interval_low_mw/1000).toFixed(2) + ' – ' +
       (data.confidence_interval_high_mw/1000).toFixed(2) + ' GW';
+    const mw = data.consommation_predite_mw.toLocaleString('fr-FR');
+    const ms = data.inference_time_ms.toFixed(2);
     document.getElementById('result-details').innerHTML =
-      '<div class="result-row"><span>Modèle</span><span>' + data.model_used + '</span></div>' +
-      '<div class="result-row"><span>Valeur MW</span><span>' + data.consommation_predite_mw.toLocaleString('fr-FR') + ' MW</span></div>' +
-      '<div class="result-row"><span>Temps d\'inférence</span><span>' + data.inference_time_ms.toFixed(2) + ' ms</span></div>';
+      '<div class="result-row"><span>Modèle</span>'
+      + '<span>' + data.model_used + '</span></div>'
+      + '<div class="result-row"><span>Valeur MW</span>'
+      + '<span>' + mw + ' MW</span></div>'
+      + '<div class="result-row"><span>Temps d\'inférence</span>'
+      + '<span>' + ms + ' ms</span></div>';
     r.style.display = 'block';
   }
 
