@@ -3,10 +3,13 @@ Calcul des métriques d'évaluation des modèles de prédiction.
 Métriques implémentées : R², RMSE, MAPE, Accuracy ±10%, temps d'inférence.
 """
 
-import numpy as np
 import time
 import logging
 from typing import Any
+import numpy as np
+import pandas as pd
+
+# pylint: disable=invalid-name
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +127,12 @@ def evaluate_model(model: Any, X_test: np.ndarray, y_test: np.ndarray,
     # Évaluation des objectifs EDF
     _check_objectives(metrics)
 
-    logger.info(f"[{model_name}] R²={metrics['r2']:.3f} MAPE={metrics['mape_pct']:.2f}%")
+    logger.info(
+        "[%s] R²=%.3f MAPE=%.2f%%",
+        model_name,
+        metrics["r2"],
+        metrics["mape_pct"],
+    )
     return metrics
 
 
@@ -152,7 +160,6 @@ def compare_models(results: dict):
     Returns:
         pd.DataFrame trié par R² décroissant
     """
-    import pandas as pd
 
     rows = list(results.values())
     df = pd.DataFrame(rows).sort_values("r2", ascending=False).reset_index(drop=True)
