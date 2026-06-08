@@ -198,9 +198,6 @@ jobs:
       packages: read
 
     steps:
-      - name: Fixer les permissions du workspace
-        run: sudo chown -R $USER:$USER $GITHUB_WORKSPACE || true
-
       - name: Login sur GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
