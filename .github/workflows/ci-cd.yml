@@ -212,10 +212,16 @@ jobs:
 
           cd technique/docker
           docker compose pull api
+          docker compose build mlflow
           docker compose up -d
 
-          sleep 15
+          sleep 20
           docker exec edf-prediction-api python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
+
+          echo "=== Statut des containers ==="
+          docker compose ps
+          echo "=== Logs MLflow (30 dernières lignes) ==="
+          docker logs edf-mlflow --tail=30 || true
 
           docker image prune -f
           echo "Production déployée - version ${{ env.IMAGE_TAG }}"
