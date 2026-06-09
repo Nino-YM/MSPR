@@ -22,7 +22,7 @@ from api.schemas import (
     HealthResponse, ModelMetricsResponse
 )
 from api.auth import create_access_token, get_current_user, require_role
-from data_pipeline.preprocessing import build_features, get_feature_columns
+from data_pipeline.preprocessing import get_feature_columns
 from models.rbf_network import RBFNetwork
 
 logging.basicConfig(level=logging.INFO)
@@ -108,25 +108,29 @@ app.add_middleware(
 def _build_feature_vector(req: PredictionRequest) -> np.ndarray:
     """Construit le vecteur de features normalisé à partir de la requête."""
     d = pd.Timestamp(req.date)
-    row = {
-        "date":               d,
-        "consommation_mw":    0,  # placeholder (non utilisé en prédiction)
+
+    # Build features directly — build_features() uses .shift() (batch/time-series logic)
+    # which produces NaN on a single row, then dropna removes it entirely.
+    feature_map = {
+        "consommation_j1":    0.0,
+        "consommation_j7":    0.0,
+        "consommation_j14":   0.0,
+        "consommation_ma7":   0.0,
         "temperature_moyenne": req.temperature_moyenne,
         "temperature_min":    req.temperature_min,
         "temperature_max":    req.temperature_max,
-        "type_jour":          req.type_jour,
-        "mois":               d.month,
-        "jour_semaine":       d.dayofweek,
-        "consommation_j1":    0,
-        "consommation_j7":    0,
-        "consommation_j14":   0,
-        "consommation_ma7":   0,
+        "mois_sin": np.sin(2 * np.pi * d.month / 12),
+        "mois_cos": np.cos(2 * np.pi * d.month / 12),
+        "jour_sin": np.sin(2 * np.pi * d.dayofweek / 7),
+        "jour_cos": np.cos(2 * np.pi * d.dayofweek / 7),
+        "est_ouvre":  int(req.type_jour == 0),
+        "est_weekend": int(req.type_jour == 1),
+        "est_ferie":  int(req.type_jour == 2),
+        "est_hiver":  int(d.month in {11, 12, 1, 2, 3}),
     }
-    df_row = pd.DataFrame([row])
-    df_feat = build_features(df_row)
 
     feature_cols = state["feature_cols"] or get_feature_columns()
-    X = df_feat[feature_cols].values
+    X = np.array([[feature_map[c] for c in feature_cols]])
 
     if state["scaler"] is not None:
         X = state["scaler"].transform(X)
