@@ -2,6 +2,7 @@
 API REST — Prédiction de la Consommation Électrique EDF
 FastAPI + JWT + Prometheus metrics
 """
+import json
 import os
 import time
 import logging
@@ -84,6 +85,27 @@ async def lifespan(app: FastAPI):
         logger.info(f" {len(state['feature_cols'])} features chargées")
 
     MODELS_LOADED_GAUGE.set(len(state["models"]))
+
+    # Initialise MAPE gauges from pre-computed metrics JSON files
+    metrics_files = {
+        "random_forest": "metrics_random_forest.json",
+        "decision_tree": "metrics_decision_tree.json",
+        "rbf_network":   "metrics_rbf_network.json",
+        "knn":           "metrics_knn.json",
+    }
+    for model_key, filename in metrics_files.items():
+        path = MODELS_PATH / filename
+        if path.exists():
+            try:
+                with open(path, encoding="utf-8") as f:
+                    metrics = json.load(f)
+                mape = metrics.get("mape_pct")
+                if mape is not None:
+                    MAPE_GAUGE.labels(model=model_key).set(mape)
+                    logger.info(f" MAPE {model_key}: {mape:.2f}%")
+            except Exception as e:
+                logger.warning(f"  MAPE non chargé pour {model_key}: {e}")
+
     logger.info(f"API prête — {len(state['models'])} modèles disponibles")
     yield
     # ── Shutdown ──
@@ -234,7 +256,6 @@ def get_model_metrics(
     model_name: str,
     user: dict = Depends(require_role("analyst"))
 ):
-    import json
     metrics_files = {
         "random_forest": "metrics_random_forest.json",
         "decision_tree": "metrics_decision_tree.json",
