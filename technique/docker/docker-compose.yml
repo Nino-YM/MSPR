@@ -138,6 +138,7 @@ services:
       - grafana_data:/var/lib/grafana
       - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
       - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/alerting:/etc/grafana/provisioning/alerting:ro
     depends_on:
       - prometheus
     networks:

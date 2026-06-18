@@ -1,0 +1,273 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: EDF Prediction API
+    folder: EDF Alerts
+    interval: 1m
+    rules:
+
+      # Déclenche si le MAPE d'un modèle dépasse 15 % (dégradation de précision)
+      - uid: edf-alert-mape-high
+        title: "MAPE modèle élevé (> 15%)"
+        condition: C
+        data:
+          - refId: A
+            queryType: ''
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              expr: edf_model_mape_pct
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            queryType: ''
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [15]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: A
+              hide: false
+              refId: C
+        noDataState: NoData
+        execErrState: Alerting
+        for: 0s
+        labels:
+          severity: warning
+        annotations:
+          summary: "MAPE élevé — {{ $labels.model }}"
+          description: "Le modèle {{ $labels.model }} a un MAPE de {{ $values.A }}%, au-dessus du seuil de 15%."
+
+      # Déclenche si le taux d'erreur de prédiction dépasse 5 % sur 5 minutes
+      - uid: edf-alert-error-rate
+        title: "Taux d'erreur élevé (> 5%)"
+        condition: C
+        data:
+          - refId: A
+            queryType: ''
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              expr: sum(rate(edf_predictions_total{status="error"}[5m])) / sum(rate(edf_predictions_total[5m])) * 100
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            queryType: ''
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [5]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: A
+              hide: false
+              refId: C
+        noDataState: NoData
+        execErrState: Alerting
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Taux d'erreur API élevé"
+          description: "Le taux d'erreur de prédiction est à {{ $values.A }}%, au-dessus du seuil de 5%."
+
+      # Déclenche si la latence P95 dépasse 1 seconde sur 5 minutes
+      - uid: edf-alert-latency-high
+        title: "Latence P95 élevée (> 1s)"
+        condition: C
+        data:
+          - refId: A
+            queryType: ''
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              expr: histogram_quantile(0.95, sum(rate(edf_prediction_latency_seconds_bucket[5m])) by (le))
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            queryType: ''
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [1]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: A
+              hide: false
+              refId: C
+        noDataState: NoData
+        execErrState: Alerting
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Latence P95 élevée"
+          description: "La latence P95 est à {{ $values.A }}s, au-dessus du seuil de 1s."
+
+      # Déclenche si moins de 4 modèles sont chargés (certains modèles ont planté)
+      - uid: edf-alert-models-down
+        title: "Modèles ML indisponibles (< 4)"
+        condition: C
+        data:
+          - refId: A
+            queryType: ''
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              expr: edf_models_loaded
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            queryType: ''
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [4]
+                    type: lt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: A
+              hide: false
+              refId: C
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 0s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Modèles ML indisponibles"
+          description: "Seulement {{ $values.A }} modèle(s) chargé(s) sur 4 attendus."
+
+      # Déclenche si l'API ne répond plus à Prometheus
+      - uid: edf-alert-api-down
+        title: "API EDF hors ligne"
+        condition: C
+        data:
+          - refId: A
+            queryType: ''
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              expr: up{job="edf-api"}
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            queryType: ''
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [1]
+                    type: lt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: A
+              hide: false
+              refId: C
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API EDF hors ligne"
+          description: "L'API de prédiction EDF ne répond plus depuis plus d'1 minute."
